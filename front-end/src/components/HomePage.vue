@@ -2,12 +2,7 @@
   <v-container class="fill-height" fluid>
     <v-row justify="center" align="center">
       <v-col cols="12" class="text-center">
-        <v-img
-          :src="require('../assets/aiko.png')"
-          class="my-5"
-          contain
-          height="120"
-        />
+        <v-img class="my-3" contain height="5" />
       </v-col>
       <v-col cols="auto">
         <v-card class="custom-card">
@@ -16,106 +11,170 @@
               <v-col cols="12">
                 <v-autocomplete
                   v-model="selectedEquipamento"
-                  :items="equipamento"
+                  :items="equipamentoModelo"
                   item-text="name"
                   item-value="id"
                   outlined
                   dense
-                  chips
-                  small-chips
-                  label="Equipamento"
-                  multiple
+                  class="text-center"
+                  label="Selecione modelo"
+                  :menu-props="{ maxHeight: '120px' }"
+                  @change="onEquipamentoSelected"
+                  clearable
                 />
               </v-col>
-              <v-col cols="12">
+
+              <v-col v-if="selectedEquipamento.length != 0" cols="12">
                 <v-autocomplete
-                  v-model="values"
-                  :items="items"
+                  v-model="selectedModel"
+                  :items="equipamentoFilter"
+                  item-text="name"
+                  item-value="id"
                   outlined
                   dense
-                  chips
-                  small-chips
-                  label="Outlined"
-                  multiple
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-autocomplete
-                  v-model="values"
-                  :items="items"
-                  outlined
-                  dense
-                  chips
-                  small-chips
-                  label="Outlined"
-                  multiple
+                  label="Selecione Equipamento"
+                  :menu-props="{ maxHeight: '120px' }"
+                  clearable
                 />
               </v-col>
             </v-row>
           </v-container>
+          <v-btn color="primary" :disabled="disable" @click="openMap()">
+            Pesquisar Equipamento
+          </v-btn>
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Mapa Leaflet fixo abaixo do card -->
+
+    <v-container class="mt-8">
+      <v-col v-if="textVisible" class="h5"><h5>OBS:Últimos cinco registros de datas que serão exibidos.</h5></v-col>
+      <v-row justify="center" align="center" >
+        <v-col>
+          <leaflet-map
+            :center="mapCenter"
+            :zoom="mapZoom"
+            :markerPositions="markerPositions"
+          ></leaflet-map>
+        </v-col>
+      </v-row>
+    </v-container>
   </v-container>
 </template>
 
 <script>
+import equipment from "../data/equipment.json";
+import equipmentPositionHistory from "../data/equipmentPositionHistory.json";
+import equipmentState from "../data/equipmentState.json";
+import equipmentStateHistory from "../data/equipmentStateHistory.json";
+import equipmentModel from "../data/equipmentModel.json";
+import { format } from "date-fns";
+
+import LeafletMap from "./LeafletMap.vue";
+
 export default {
   name: "HomePage",
+  components: {
+    LeafletMap,
+  },
   data() {
     return {
-      selectedEquipamento: [], // Armazena os equipamentos selecionados
-      equipamento: [
-        {
-          id: "a7c53eb1-4f5e-4eba-9764-ad205d0891f9",
-          equipmentModelId: "a3540227-2f0e-4362-9517-92f41dabbfdf",
-          name: "CA-0001",
-        },
-        {
-          id: "1c7e9615-cc1c-4d72-8496-190fe5791c8b",
-          equipmentModelId: "a3540227-2f0e-4362-9517-92f41dabbfdf",
-          name: "CA-0002",
-        },
-        {
-          id: "2b5796cb-21c1-480e-8886-4498ea593a65",
-          equipmentModelId: "a3540227-2f0e-4362-9517-92f41dabbfdf",
-          name: "CA-0003",
-        },
-        {
-          id: "1d222cdc-01dd-4caa-8934-5351d3995cfb",
-          equipmentModelId: "a3540227-2f0e-4362-9517-92f41dabbfdf",
-          name: "CA-0004",
-        },
-        {
-          id: "491b983b-950c-4a88-942d-487e99b92540",
-          equipmentModelId: "a4b0c114-acd8-4151-9449-7d12ab9bf40f",
-          name: "HV-1001",
-        },
-        {
-          id: "39317fcb-79e7-4e7e-83dc-723a9b63633c",
-          equipmentModelId: "a4b0c114-acd8-4151-9449-7d12ab9bf40f",
-          name: "HV-1002",
-        },
-        {
-          id: "c79ef1de-92f3-4edd-bd55-553056640449",
-          equipmentModelId: "9c3d009e-0d42-4a6e-9036-193e9bca3199",
-          name: "GT-2001",
-        },
-        {
-          id: "b7aaba00-13f7-44a0-8bf1-bc163afcf9d8",
-          equipmentModelId: "9c3d009e-0d42-4a6e-9036-193e9bca3199",
-          name: "GT-2002",
-        },
-        {
-          id: "fe2a2e11-bfa6-46b6-990b-fd8175946b7e",
-          equipmentModelId: "9c3d009e-0d42-4a6e-9036-193e9bca3199",
-          name: "GT-2003",
-        },
-      ],
+      equipamento: [],
+      equipamentoPosition: [],
+      selectedEquipamento: [],
+      equipamentoState: [],
+      equipamentoHistorico: [],
+      selectedModel: [],
+      positionFilter: [],
+      equipamentoFilter: [],
+      equipamentoModelo: [],
+      markerPositions: [],
+      textVisible:false,
+      mapCenter: { lat: 51.505, lng: -0.09 }, // valores padrão
+      mapZoom: 10,
     };
   },
-};
 
+  mounted() {
+    // Carrega os dados do JSON no 'mounted'
+    this.loadEquipment();
+  },
+  methods: {
+    loadEquipment() {
+      // Simula uma requisição para obter os dados do JSON
+      this.equipamentoModelo = equipmentModel;
+      this.equipamentoPosition = equipmentPositionHistory;
+      this.equipamentoState = equipmentState;
+      this.equipamento = equipment;
+      this.equipamentoHistorico = equipmentStateHistory;
+    },
+
+    async onEquipamentoSelected() {
+      // Filtrar os equipamentos com base no equipamento selecionado
+      this.equipamentoFilter = await this.equipamento.filter(
+        (equipamento) =>
+          equipamento.equipmentModelId === this.selectedEquipamento
+      );
+    },
+    async openMap() {
+      // Filtrar o equipamento com base no equipamento selecionado e retornar apenas o nome do primeiro resultado
+      const equipamentoSelecionado = this.equipamento.find(
+        (equipamento) =>
+          equipamento.equipmentModelId === this.selectedEquipamento
+      );
+
+      // Se o equipamento foi encontrado, pegar o nome
+      const equipamentoNome = equipamentoSelecionado
+        ? equipamentoSelecionado.name
+        : "";
+
+      // Aqui você pode usar `equipamentoNome` e `modeloNome` conforme a necessidade
+
+      // Filtra os dados baseados no modelo selecionado
+      this.positionFilter = await this.equipamentoPosition.filter(
+        (equipamento) => equipamento.equipmentId === this.selectedModel
+      );
+
+      // Pega as primeiras 5 posições ou todas as que precisar
+      const firstFivePositions = this.positionFilter[0].positions.slice(0, 5);
+
+      // Extrai as informações de "lat" e "lon" de cada uma dessas posições
+      this.markerPositions = firstFivePositions.map((position) => {
+        return {
+          lat: position.lat,
+          lon: position.lon,
+          date: format(position.date, "dd-MM-yyyy (HH:mm)"),
+          name: equipamentoNome,
+        };
+      });
+
+      console.log(this.markerPositions, "Informações Extraídas");
+
+      // Aqui você pode definir a localização (latitude/longitude) do equipamento selecionado
+      this.mapCenter = this.mapCenter = {
+        lat: this.markerPositions[0].lat,
+        lng: this.markerPositions[0].lon,
+      }; // exemplo
+      this.textVisible = true
+      this.mapZoom = 10;
+    },
+  
+  },
+
+  computed: {
+    search() {
+      console.log(this.selectedEquipamento);
+      return this.selectedEquipamento.length == 0;
+    },
+    model() {
+      return this.selectedModel.length == 0;
+    },
+    disable() {
+      return this.search || this.model;
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -124,10 +183,30 @@ export default {
 }
 
 .custom-card {
-  padding: 20px; /* Ajuste de padding ou outras customizações */
-  text-align: center; /* Centraliza o conteúdo dentro do card */
-  max-width: 400px; /* Ajusta a largura máxima do card */
-  border-radius: 20px; /* Define bordas arredondadas */
+  padding: 20px;
+  text-align: center;
+  max-width: 400px;
+  border-radius: 20px;
   background-color: rgb(237, 239, 250);
+}
+
+#map {
+  width: 100%; /* Ajusta a largura para preencher o contêiner pai */
+  height: 400px; /* Ajuste a altura conforme necessário */
+}
+
+/* Style for autocomplete to make sure it's on top */
+.autocomplete .v-autocomplete__content {
+  z-index: 9999; /* Ensure it's on top of other elements */
+}
+
+.v-btn {
+  border-radius: 15px;
+}
+
+.h5 {
+  text-transform: none; /* Remove a transformação para maiúsculas */
+  font-size: 12px; /* Define o tamanho da fonte */
+  color:rgb(64, 64, 66);
 }
 </style>

@@ -1,23 +1,27 @@
 <template>
   <v-app>
+   
+     
+
     <v-main>
-      <HomePage/>
+      <v-img
+        src="./assets/aiko.png"
+        contain
+        height="100"
+      ></v-img>
+      <!-- Substitua o texto pela imagem -->
+      <router-view></router-view>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import HomePage from './components/HomePage';
-
 export default {
-  name: 'App',
-
-  components: {
-    HomePage,
-  },
-
-  data: () => ({
-    //
-  }),
-};
+  name: 'App'
+}
 </script>
+
+<style>
+/* Adicione estilos globais aqui */
+
+</style>
