@@ -6,7 +6,15 @@
       </v-col>
       <v-col cols="auto">
         <v-card class="custom-card">
-          <v-container class="mt-3">
+          <!-- Imagem no topo do card -->
+          <v-img
+            src="@/assets/aiko.png"
+            contain
+            height="50"
+            class="mt-5"
+          ></v-img>
+
+          <v-container class="mt-7">
             <v-row>
               <v-col cols="12">
                 <v-autocomplete
@@ -18,14 +26,14 @@
                   dense
                   class="text-center"
                   label="Selecione modelo"
-                  :menu-props="{ maxHeight: '115px' }"
+                  :menu-props="{ maxHeight: '150px' }"
                   @change="onEquipamentoSelected"
                   clearable
                   return-object
                 />
               </v-col>
 
-              <v-col v-if="selectedEquipamento.length != 0" cols="12">
+              <v-col cols="12">
                 <v-autocomplete
                   v-model="selectedModel"
                   :items="equipamentoFilter"
@@ -34,13 +42,13 @@
                   outlined
                   dense
                   label="Selecione Equipamento"
-                  :menu-props="{ maxHeight: '115px' }"
+                  :menu-props="{ maxHeight: '150px' }"
                   clearable
                   return-object
                 />
               </v-col>
 
-              <v-col v-if="selectedModel.length != 0" cols="12">
+              <v-col cols="12">
                 <v-select
                   v-model="selectedsearchPosition"
                   :items="selectedSearch"
@@ -50,7 +58,7 @@
                   dense
                   class="text-center"
                   label="Posições de pesquisa"
-                  :menu-props="{ maxHeight: '115px' }"
+                  :menu-props="{ maxHeight: '150px' }"
                   clearable
                 />
               </v-col>
@@ -61,21 +69,21 @@
           </v-btn>
         </v-card>
       </v-col>
+
+      <!-- Mapa Leaflet fixo abaixo do card -->
+
+      <v-container class="mt-3">
+        <v-row justify="center" align="center">
+          <v-col>
+            <leaflet-map
+              :center="mapCenter"
+              :zoom="mapZoom"
+              :markerPositions="markerPositions"
+            ></leaflet-map>
+          </v-col>
+        </v-row>
+      </v-container>
     </v-row>
-
-    <!-- Mapa Leaflet fixo abaixo do card -->
-
-    <v-container class="mt-3">
-      <v-row justify="center" align="center">
-        <v-col>
-          <leaflet-map
-            :center="mapCenter"
-            :zoom="mapZoom"
-            :markerPositions="markerPositions"
-          ></leaflet-map>
-        </v-col>
-      </v-row>
-    </v-container>
   </v-container>
 </template>
 
@@ -247,11 +255,20 @@ export default {
   max-width: 400px;
   border-radius: 20px;
   background-color: rgb(237, 239, 250);
+  height: 500px; /* Ajuste a altura conforme necessário */
+
+  /* Para centralizar o card no meio da página com um pequeno deslocamento, você pode usar margin auto */
+  margin-left: auto;
+  margin-right: auto;
+  left: 30px; /* Deslocamento opcional para ajustar mais */
+  /* Opcional: adicione uma sombra para dar destaque */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 #map {
-  width: 100%; /* Ajusta a largura para preencher o contêiner pai */
-  height: 400px; /* Ajuste a altura conforme necessário */
+  width: 110%; /* Ajusta a largura para preencher o contêiner pai */
+  height: 600px; /* Ajuste a altura conforme necessário */
+  right: 30px; /* Deslocamento opcional para ajustar mais */
 }
 
 /* Style for autocomplete to make sure it's on top */
