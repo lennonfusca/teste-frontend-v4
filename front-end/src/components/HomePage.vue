@@ -127,6 +127,8 @@ export default {
   mounted() {
     // Carrega os dados do JSON no 'mounted'
     this.loadEquipment();
+
+   
   },
   methods: {
     loadEquipment() {
@@ -173,6 +175,7 @@ export default {
         firstFivePositions = this.positionFilter[0].positions.reverse();
 
         firstFiveStates = this.stateFilter[0].states.reverse();
+        this.selectedsearchPosition = 3
       }
       // Extrai as informações de "lat", "lon", "date", "name", e agora "equipmentStateId"
       this.markerPositions = firstFivePositions.map((position, index) => {
