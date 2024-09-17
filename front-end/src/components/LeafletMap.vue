@@ -77,9 +77,10 @@ export default {
 
     // Exibe o nome, modelo, data e estado no popup
     const popupContent = `
+    <strong>Estado:</strong> ${position.stateId}<br>
       <strong>Nome:</strong> ${position.name}<br>
-      <strong>Data:</strong> ${position.date}<br>
-      <strong>Estado:</strong> ${position.stateId}
+      <strong>Data:</strong> ${position.date}
+      
     `;
     marker.bindPopup(popupContent).openPopup(); // Popup com nome, data e estado
 

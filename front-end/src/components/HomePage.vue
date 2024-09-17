@@ -169,6 +169,30 @@ export default {
       // Extrai as informações de "lat", "lon", "date", "name", e agora "equipmentStateId"
       this.markerPositions = firstFivePositions.map((position, index) => {
         const stateId = firstFiveStates[index]?.equipmentStateId || "N/A"; // Pega o equipmentStateId correspondente, ou 'N/A' se não houver
+        let stateName; // Para o texto
+        let stateColor; // Para a cor
+
+        switch (stateId) {
+          case "0808344c-454b-4c36-89e8-d7687e692d57":
+            stateName = "Operando";
+            stateColor = "#2ecc71"; // Cor verde
+            break;
+          case "baff9783-84e8-4e01-874b-6fd743b875ad":
+            stateName = "Parado";
+            stateColor = "#f1c40f"; // Cor amarela
+            break;
+          case "03b2d446-e3ba-4c82-8dc2-a5611fea6e1f":
+            stateName = "Manutenção";
+            stateColor = "#e74c3c"; // Cor vermelha
+            break;
+          default:
+            stateName = "Estado desconhecido";
+            stateColor = "#7f8c8d"; // Cor cinza
+        }
+
+        // Retornar texto com a cor definida usando HTML
+        const stateText = `<span style="color: ${stateColor};"><strong>${stateName}</strong></span>`;
+
         return {
           lat: position.lat,
           lon: position.lon,
@@ -180,7 +204,7 @@ export default {
             this.selectedEquipamento.name +
             "<br><strong>Equipamento: </strong>" +
             this.selectedModel.name,
-          stateId: stateId, // Adiciona o equipmentStateId ao marcador
+          stateId: stateText, // Adiciona o equipmentStateId ao marcador
         };
       });
       // Calcular o centro do mapa com base nos marcadores
