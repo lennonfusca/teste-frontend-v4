@@ -6,6 +6,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css"; // Importa o CSS do Leaflet
 
+
 export default {
   name: "LeafletMap",
   props: {
@@ -55,34 +56,39 @@ export default {
   },
   methods: {
     addMarkers(positions) {
-      // Define o ícone customizado com sua imagem
-      const customIcon = L.icon({
-        iconUrl: require("@/assets/marcador3.png"), // Caminho para sua imagem de marcador personalizada
-        iconSize: [20, 20], // Tamanho do ícone
-        iconAnchor: [12, 24], // O ponto do ícone que corresponderá à localização do marcador
-        popupAnchor: [0, -24], // Onde o popup deve aparecer em relação ao ícone
-      });
+  // Define o ícone customizado com sua imagem
+  const customIcon = L.icon({
+    iconUrl: require("@/assets/marcador3.png"), // Caminho para sua imagem de marcador personalizada
+    iconSize: [20, 20], // Tamanho do ícone
+    iconAnchor: [12, 24], // O ponto do ícone que corresponderá à localização do marcador
+    popupAnchor: [0, -24], // Onde o popup deve aparecer em relação ao ícone
+  });
 
-      // Remove todos os marcadores existentes antes de adicionar novos
-      if (this.markers) {
-        this.markers.forEach((marker) => this.map.removeLayer(marker));
-      }
+  // Remove todos os marcadores existentes antes de adicionar novos
+  if (this.markers) {
+    this.markers.forEach((marker) => this.map.removeLayer(marker));
+  }
 
-      // Adiciona novos marcadores com o ícone customizado
-      this.markers = positions.map((position) => {
-        const marker = L.marker([position.lat, position.lon], {
-          icon: customIcon,
-        }).addTo(this.map);
+  // Adiciona novos marcadores com o ícone customizado
+  this.markers = positions.map((position) => {
+    const marker = L.marker([position.lat, position.lon], {
+      icon: customIcon,
+    }).addTo(this.map);
 
-        // Exibe o nome e o modelo no popup
-        const popupContent = `<strong>Nome:</strong> ${position.name}<br><strong>data:</strong> ${position.date}`;
-        marker.bindPopup(popupContent).openPopup(); // Popup com nome e modelo
+    // Exibe o nome, modelo, data e estado no popup
+    const popupContent = `
+      <strong>Nome:</strong> ${position.name}<br>
+      <strong>Data:</strong> ${position.date}<br>
+      <strong>Estado:</strong> ${position.stateId}
+    `;
+    marker.bindPopup(popupContent).openPopup(); // Popup com nome, data e estado
 
-        return marker;
-      });
-    },
-  },
-};
+    return marker;
+  });
+}
+  }
+}
+
 </script>
 
 <style scoped>

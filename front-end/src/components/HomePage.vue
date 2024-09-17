@@ -6,21 +6,22 @@
       </v-col>
       <v-col cols="auto">
         <v-card class="custom-card">
-          <v-container class="mt-5">
+          <v-container class="mt-3">
             <v-row>
               <v-col cols="12">
                 <v-autocomplete
                   v-model="selectedEquipamento"
                   :items="equipamentoModelo"
                   item-text="name"
-                  item-value="id"
+                  item-value=""
                   outlined
                   dense
                   class="text-center"
                   label="Selecione modelo"
-                  :menu-props="{ maxHeight: '120px' }"
+                  :menu-props="{ maxHeight: '115px' }"
                   @change="onEquipamentoSelected"
                   clearable
+                  return-object
                 />
               </v-col>
 
@@ -29,11 +30,27 @@
                   v-model="selectedModel"
                   :items="equipamentoFilter"
                   item-text="name"
-                  item-value="id"
+                  item-value=""
                   outlined
                   dense
                   label="Selecione Equipamento"
-                  :menu-props="{ maxHeight: '120px' }"
+                  :menu-props="{ maxHeight: '115px' }"
+                  clearable
+                  return-object
+                />
+              </v-col>
+
+              <v-col v-if="selectedModel.length != 0" cols="12">
+                <v-select
+                  v-model="selectedsearchPosition"
+                  :items="selectedSearch"
+                  item-text="name"
+                  item-value="id"
+                  outlined
+                  dense
+                  class="text-center"
+                  label="Posições de pesquisa"
+                  :menu-props="{ maxHeight: '115px' }"
                   clearable
                 />
               </v-col>
@@ -48,9 +65,8 @@
 
     <!-- Mapa Leaflet fixo abaixo do card -->
 
-    <v-container class="mt-8">
-      <v-col v-if="textVisible" class="h5"><h5>OBS:Últimos cinco registros de datas que serão exibidos.</h5></v-col>
-      <v-row justify="center" align="center" >
+    <v-container class="mt-3">
+      <v-row justify="center" align="center">
         <v-col>
           <leaflet-map
             :center="mapCenter"
@@ -90,7 +106,11 @@ export default {
       equipamentoFilter: [],
       equipamentoModelo: [],
       markerPositions: [],
-      textVisible:false,
+      selectedSearch: [
+        { id: 1, value: 5, name: "Últimas 5" },
+        { id: 2, value: 10, name: "Últimas 10" },
+        { id: 3, value: 0, name: "Todas" },
+      ],
       mapCenter: { lat: 51.505, lng: -0.09 }, // valores padrão
       mapZoom: 10,
     };
@@ -114,59 +134,74 @@ export default {
       // Filtrar os equipamentos com base no equipamento selecionado
       this.equipamentoFilter = await this.equipamento.filter(
         (equipamento) =>
-          equipamento.equipmentModelId === this.selectedEquipamento
+          equipamento.equipmentModelId === this.selectedEquipamento.id
       );
     },
     async openMap() {
-      // Filtrar o equipamento com base no equipamento selecionado e retornar apenas o nome do primeiro resultado
-      const equipamentoSelecionado = this.equipamento.find(
-        (equipamento) =>
-          equipamento.equipmentModelId === this.selectedEquipamento
-      );
-
-      // Se o equipamento foi encontrado, pegar o nome
-      const equipamentoNome = equipamentoSelecionado
-        ? equipamentoSelecionado.name
-        : "";
-
-      // Aqui você pode usar `equipamentoNome` e `modeloNome` conforme a necessidade
-
       // Filtra os dados baseados no modelo selecionado
       this.positionFilter = await this.equipamentoPosition.filter(
-        (equipamento) => equipamento.equipmentId === this.selectedModel
+        (equipamento) => equipamento.equipmentId === this.selectedModel.id
+      );
+      this.stateFilter = await this.equipamentoHistorico.filter(
+        (equipamentoState) =>
+          equipamentoState.equipmentId === this.selectedModel.id
       );
 
-      // Pega as primeiras 5 posições ou todas as que precisar
-      const firstFivePositions = this.positionFilter[0].positions.slice(0, 5);
+      // Pega as primeiras 5 posições e inverte a ordem
+      let firstFivePositions;
+      let firstFiveStates;
 
-      // Extrai as informações de "lat" e "lon" de cada uma dessas posições
-      this.markerPositions = firstFivePositions.map((position) => {
+      if (this.selectedsearchPosition == 1) {
+        firstFivePositions = this.positionFilter[0].positions
+          .reverse()
+          .slice(0, 5);
+        firstFiveStates = this.stateFilter[0].states.reverse().slice(0, 5);
+      } else if (this.selectedsearchPosition == 2) {
+        firstFivePositions = this.positionFilter[0].positions
+          .reverse()
+          .slice(0, 10);
+        firstFiveStates = this.stateFilter[0].states.reverse().slice(0, 10);
+      } else {
+        firstFivePositions = this.positionFilter[0].positions.reverse();
+
+        firstFiveStates = this.stateFilter[0].states.reverse();
+      }
+      // Extrai as informações de "lat", "lon", "date", "name", e agora "equipmentStateId"
+      this.markerPositions = firstFivePositions.map((position, index) => {
+        const stateId = firstFiveStates[index]?.equipmentStateId || "N/A"; // Pega o equipmentStateId correspondente, ou 'N/A' se não houver
         return {
           lat: position.lat,
           lon: position.lon,
-          date: format(position.date, "dd-MM-yyyy (HH:mm)"),
-          name: equipamentoNome,
+          date: format(
+            position.date,
+            "dd-MM-yyyy '<br><strong>Hora:</strong>' HH:mm"
+          ),
+          name:
+            this.selectedEquipamento.name +
+            "<br><strong>Equipamento: </strong>" +
+            this.selectedModel.name,
+          stateId: stateId, // Adiciona o equipmentStateId ao marcador
         };
       });
+      // Calcular o centro do mapa com base nos marcadores
+      if (this.markerPositions.length > 0) {
+        const latitudes = this.markerPositions.map((marker) => marker.lat);
+        const longitudes = this.markerPositions.map((marker) => marker.lon);
 
-      console.log(this.markerPositions, "Informações Extraídas");
+        const avgLat = latitudes.reduce((a, b) => a + b, 0) / latitudes.length;
+        const avgLng =
+          longitudes.reduce((a, b) => a + b, 0) / longitudes.length;
 
-      // Aqui você pode definir a localização (latitude/longitude) do equipamento selecionado
-      this.mapCenter = this.mapCenter = {
-        lat: this.markerPositions[0].lat,
-        lng: this.markerPositions[0].lon,
-      }; // exemplo
-      this.textVisible = true
-      this.mapZoom = 10;
+        this.mapCenter = { lat: avgLat, lng: avgLng }; // Atualiza o centro do mapa
+      }
     },
-  
   },
 
   computed: {
     search() {
-      console.log(this.selectedEquipamento);
       return this.selectedEquipamento.length == 0;
     },
+
     model() {
       return this.selectedModel.length == 0;
     },
@@ -207,6 +242,6 @@ export default {
 .h5 {
   text-transform: none; /* Remove a transformação para maiúsculas */
   font-size: 12px; /* Define o tamanho da fonte */
-  color:rgb(64, 64, 66);
+  color: rgb(64, 64, 66);
 }
 </style>
